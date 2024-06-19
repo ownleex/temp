@@ -6,53 +6,85 @@
 /*   By: ayarmaya <ayarmaya@student.42nice.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/10 16:15:06 by ayarmaya          #+#    #+#             */
-/*   Updated: 2024/06/11 18:39:51 by ayarmaya         ###   ########.fr       */
+/*   Updated: 2024/06/19 19:03:18 by ayarmaya         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-long	get_current_time(void)
+int	ft_strlen(char *str)
 {
-	struct timeval	tv;
+	int	i;
 
-	gettimeofday(&tv, NULL);
-	return (tv.tv_sec * 1000 + tv.tv_usec / 1000);
+	if (str == NULL)
+		return (0);
+	i = 0;
+	while (str[i] != '\0')
+		i++;
+	return (i);
 }
 
-long	get_timestamp(long start_time)
+int	ft_atoi(char *str)
 {
-	return (get_current_time() - start_time);
-}
+	unsigned long long	nb;
+	int					sign;
+	int					i;
 
-long	ft_atol(const char *str)
-{
-	long	result;
-	int		sign;
-	int		i;
-
-	result = 0;
+	nb = 0;
 	sign = 1;
 	i = 0;
-	while ((str[i] >= 9 && str[i] <= 13) || str[i] == 32)
+	while (str[i] == ' ' || str[i] == '\t' || str[i] == '\n' || str[i] == '\v'
+		|| str[i] == '\f' || str[i] == '\r')
 		i++;
-	if (str[i] == '+')
-		i++;
-	else if (str[i] == '-')
-	{
+	if (str[i] == '-')
 		sign = -1;
+	if (str[i] == '-' || str[i] == '+')
 		i++;
-	}
 	while (str[i] >= '0' && str[i] <= '9')
 	{
-		result = result * 10 + str[i] - '0';
+		nb = nb * 10 + (str[i] - '0');
 		i++;
 	}
-	return (result * sign);
+	return (sign * nb);
 }
 
-int	error(char *str)
+void	destroy_all(char *str, t_program *program, pthread_mutex_t *forks)
 {
-	printf("%s\n", str);
-	return (1);
+	int	i;
+
+	i = 0;
+	if (str)
+	{
+		write(2, str, ft_strlen(str));
+		write(2, "\n", 1);
+	}
+	pthread_mutex_destroy(&program->write_lock);
+	pthread_mutex_destroy(&program->meal_lock);
+	pthread_mutex_destroy(&program->dead_lock);
+	while (i < program->philos[0].num_of_philos)
+	{
+		pthread_mutex_destroy(&forks[i]);
+		i++;
+	}
+	free(program->philos);
+	free(forks);
+}
+
+int	ft_usleep(size_t milliseconds)
+{
+	size_t	start;
+
+	start = get_current_time();
+	while ((get_current_time() - start) < milliseconds)
+		usleep(500);
+	return (0);
+}
+
+size_t	get_current_time(void)
+{
+	struct timeval	time;
+
+	if (gettimeofday(&time, NULL) == -1)
+		write(2, "gettimeofday() error\n", 22);
+	return (time.tv_sec * 1000 + time.tv_usec / 1000);
 }

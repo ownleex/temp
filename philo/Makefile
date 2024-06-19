@@ -6,7 +6,7 @@
 #    By: ayarmaya <ayarmaya@student.42nice.fr>      +#+  +:+       +#+         #
 #                                                 +#+#+#+#+#+   +#+            #
 #    Created: 2024/06/05 13:27:58 by ayarmaya          #+#    #+#              #
-#    Updated: 2024/06/11 19:24:02 by ayarmaya         ###   ########.fr        #
+#    Updated: 2024/06/19 19:35:45 by ayarmaya         ###   ########.fr        #
 #                                                                              #
 # **************************************************************************** #
 
@@ -15,7 +15,9 @@ PATH_SRC	=	src/
 SRC			=	main.c \
 				utils.c \
 				init.c \
-				actions.c
+				threads.c \
+				monitor.c \
+				routines.c
 
 SRCS		=	$(addprefix $(PATH_SRC), $(SRC))
 OBJS		=	$(SRCS:.c=.o)

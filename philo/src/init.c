@@ -6,69 +6,68 @@
 /*   By: ayarmaya <ayarmaya@student.42nice.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/11 17:35:54 by ayarmaya          #+#    #+#             */
-/*   Updated: 2024/06/12 18:21:11 by ayarmaya         ###   ########.fr       */
+/*   Updated: 2024/06/19 19:03:07 by ayarmaya         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-int	init_philosophers(t_table *table)
+void	init_input(t_philo *philo, char **argv)
 {
-	int		i;
-
-	table->philos = malloc(sizeof(t_philosopher) * table->num_of_philo);
-	if (!table->philos)
-		return (error("Err: Memory allocation failed.\n"));
-	i = 0;
-	while (i < table->num_of_philo)
-	{
-		table->philos[i].id = i + 1;
-		table->philos[i].left_fork = &table->mutex_fork[i];
-		table->philos[i].right_fork = &table->mutex_fork[(i + 1) % \
-		table->num_of_philo];
-		table->philos[i].last_meal_time = table->start_time;
-		table->philos[i].meals_eaten = 0;
-		table->philos[i].table = table;
-		i++;
-	}
-	return (0);
+	philo->time_to_die = ft_atoi(argv[2]);
+	philo->time_to_eat = ft_atoi(argv[3]);
+	philo->time_to_sleep = ft_atoi(argv[4]);
+	philo->num_of_philos = ft_atoi(argv[1]);
+	if (argv[5])
+		philo->num_times_to_eat = ft_atoi(argv[5]);
+	else
+		philo->num_times_to_eat = -1;
 }
 
-int	init_forks(t_table *table)
+void	init_philos(t_philo *philos, t_program *program, pthread_mutex_t *forks,
+		char **argv)
 {
 	int	i;
 
-	table->mutex_fork = malloc(sizeof(pthread_mutex_t) * table->num_of_philo);
-	if (!table->mutex_fork)
-		return (error("Err: Memory allocation failed.\n"));
 	i = 0;
-	while (i < table->num_of_philo)
+	while (i < ft_atoi(argv[1]))
 	{
-		if (pthread_mutex_init(&table->mutex_fork[i], NULL))
-			return (error("Err: Mutex initialization failed.\n"));
+		philos[i].id = i + 1;
+		philos[i].eating = 0;
+		philos[i].meals_eaten = 0;
+		init_input(&philos[i], argv);
+		philos[i].start_time = get_current_time();
+		philos[i].last_meal = get_current_time();
+		philos[i].write_lock = &program->write_lock;
+		philos[i].dead_lock = &program->dead_lock;
+		philos[i].meal_lock = &program->meal_lock;
+		philos[i].dead = &program->dead_flag;
+		philos[i].l_fork = &forks[i];
+		if (i == 0)
+			philos[i].r_fork = &forks[philos[i].num_of_philos - 1];
+		else
+			philos[i].r_fork = &forks[i - 1];
 		i++;
 	}
-	return (0);
 }
 
-int	init_table(t_table *table, int argc, char **argv)
+void	init_forks(pthread_mutex_t *forks, int philo_num)
 {
-	table->num_of_philo = ft_atol(argv[1]);
-	table->time_to_die = ft_atol(argv[2]);
-	table->time_to_eat = ft_atol(argv[3]);
-	table->time_to_sleep = ft_atol(argv[4]);
-	if (argc == 6)
-		table->num_of_meals = ft_atol(argv[5]);
-	else
-		table->num_of_meals = -1;
-	table->start_time = get_current_time();
-	if (pthread_mutex_init(&table->print_mutex, NULL))
-		return (error("Err: Print mutex initialization failed.\n"));
-	if (pthread_mutex_init(&table->meal_check_mutex, NULL))
-		return (error("Err: Meal check mutex initialization failed.\n"));
-	if (init_forks(table))
-		return (1);
-	if (init_philosophers(table))
-		return (1);
-	return (0);
+	int	i;
+
+	i = 0;
+	while (i < philo_num)
+	{
+		pthread_mutex_init(&forks[i], NULL);
+		i++;
+	}
+}
+
+void	init_program(t_program *program, t_philo *philos)
+{
+	program->dead_flag = 0;
+	program->philos = philos;
+	pthread_mutex_init(&program->write_lock, NULL);
+	pthread_mutex_init(&program->dead_lock, NULL);
+	pthread_mutex_init(&program->meal_lock, NULL);
 }

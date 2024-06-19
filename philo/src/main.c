@@ -6,74 +6,85 @@
 /*   By: ayarmaya <ayarmaya@student.42nice.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/10 16:15:01 by ayarmaya          #+#    #+#             */
-/*   Updated: 2024/06/11 18:31:08 by ayarmaya         ###   ########.fr       */
+/*   Updated: 2024/06/19 19:10:10 by ayarmaya         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "philo.h"
 
-void	cleanup(t_table *table)
+int	check_arg(char *arg)
 {
 	int	i;
 
 	i = 0;
-	while (i < table->num_of_philo)
+	while (arg[i] != '\0')
 	{
-		pthread_mutex_destroy(&table->mutex_fork[i]);
+		if (arg[i] < '0' || arg[i] > '9')
+			return (1);
 		i++;
 	}
-	free(table->mutex_fork);
-	free(table->philos);
-	pthread_mutex_destroy(&table->print_mutex);
-	pthread_mutex_destroy(&table->meal_check_mutex);
+	return (0);
 }
 
-int	is_positive(const char *str)
+int	check_valid_args(char **argv)
 {
-	int	i;
-
-	i = 0;
-	if (!str || str[0] == '\0')
-		return (0);
-	while (str[i])
+	if (ft_atoi(argv[1]) > PHILO_MAX || ft_atoi(argv[1]) <= 0 || check_arg(argv[1]) == 1)
 	{
-		if (str[i] < '0' || str[i] > '9')
-			return (0);
-		i++;
+		write(2, "Invalid philosophers number\n", 29);
+		return (1);
 	}
-	return (1);
-}
-
-int	check_arguments(int argc, char **argv)
-{
-	int	i;
-	int	num_of_philos;
-
-	i = 1;
-	while (i < argc)
+	if (ft_atoi(argv[2]) <= 0 || check_arg(argv[2]) == 1)
 	{
-		if (!is_positive(argv[i]) || ft_atol(argv[i]) <= 0)
-			return (error("Err: All arguments must be positive integers.\n"));
-		i++;
+		write(2, "Invalid time to die\n", 21);
+		return (1);
 	}
-	num_of_philos = ft_atol(argv[1]);
-	if (num_of_philos > 200)
-		return (error("Err: Number of philosophers must not exceed 200.\n"));
+	if (ft_atoi(argv[3]) <= 0 || check_arg(argv[3]) == 1)
+	{
+		write(2, "Invalid time to eat\n", 21);
+		return (1);
+	}
+	if (ft_atoi(argv[4]) <= 0 || check_arg(argv[4]) == 1)
+	{
+		write(2, "Invalid time to sleep\n", 23);
+		return (1);
+	}
+	if (argv[5] && (ft_atoi(argv[5]) < 0 || check_arg(argv[5]) == 1))
+	{
+		write(2, "Invalid number of times each philosopher must eat\n", 51);
+		return (1);
+	}
 	return (0);
 }
 
 int	main(int argc, char **argv)
 {
-	t_table		table;
+	t_program			program;
+	t_philo				*philos;
+	pthread_mutex_t		*forks;
+	int					philo_num;
 
-	if (argc < 5 || argc > 6)
-		return (error("Err: Wrong argument count\n"));
-	if (check_arguments(argc, argv))
+	if (argc != 5 && argc != 6)
+		return (write(2, "Wrong argument count\n", 22), 1);
+	if (check_valid_args(argv) == 1)
 		return (1);
-	if (init_table(&table, argc, argv))
+	philo_num = ft_atoi(argv[1]);
+	philos = (t_philo *)malloc(sizeof(t_philo) * philo_num);
+	if (!philos)
+	{
+		write(2, "Memory allocation error\n", 24);
 		return (1);
-	if (create_threads(&table))
+	}
+	forks = (pthread_mutex_t *)malloc(sizeof(pthread_mutex_t) * philo_num);
+	if (!forks)
+	{
+		free(philos);
+		write(2, "Memory allocation error\n", 24);
 		return (1);
-	cleanup(&table);
+	}
+	init_program(&program, philos);
+	init_forks(forks, philo_num);
+	init_philos(philos, &program, forks, argv);
+	thread_create(&program, forks);
+	destroy_all(NULL, &program, forks);
 	return (0);
 }
