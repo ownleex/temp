@@ -6,7 +6,7 @@
 /*   By: ayarmaya <ayarmaya@student.42nice.fr>      +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2024/06/10 16:15:01 by ayarmaya          #+#    #+#             */
-/*   Updated: 2024/06/22 15:52:31 by ayarmaya         ###   ########.fr       */
+/*   Updated: 2024/06/22 15:53:13 by ayarmaya         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -48,7 +48,7 @@ int	check_valid_args(char **argv)
 {
 	if (ft_atoi(argv[1]) > PHILO_MAX || ft_atoi(argv[1]) <= 0 || check_arg(argv[1]) == 1)
 	{
-		return (write(2, "Invalid philosophers number\n", 29));
+		return (write(2, "Invalid philosophers number\n", 29), 1);
 	}
 	if (ft_atoi(argv[2]) <= 0 || check_arg(argv[2]) == 1)
 	{
