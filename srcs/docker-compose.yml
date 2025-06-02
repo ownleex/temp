@@ -1,0 +1,220 @@
+services:
+  nginx:
+    platform: linux/arm64
+    depends_on:
+      - frontend
+    build:
+      context: ./requirements/nginx
+      dockerfile: Dockerfile
+    ports:
+      - "4343:443"
+      - "8080:80"
+    container_name: nginx
+    env_file: ./env/.env_nginx
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.2
+    hostname: nginx
+    volumes:
+      - static_media:/static/media
+      - static_live_chat:/static/live_chat
+      - static_pong:/static/pong
+      - static_users:/static/users
+
+  frontend:
+    platform: linux/arm64
+    depends_on:
+      - service_user_handler_django
+      - service_game_pong_django
+      - service_live_chat_django
+    build:
+      context: ./requirements/frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_DOMAIN_NAME: 'cb6758320a74'
+        VITE_PORT_NUM: 4343
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://frontend:3000/health"]
+      interval: 30s
+      retries: 3
+    container_name: frontend
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.3
+    hostname: frontend
+
+  service_user_handler_django:
+    platform: linux/arm64
+    depends_on:
+      - service_user_handler_postgresql
+      - vault
+    build:
+      context: ./requirements/service_user_handler/django
+      dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/users/health"]
+      interval: 30s
+      retries: 3
+    container_name: service_user_handler_django
+    environment:
+      - DJANGO_SETTINGS_MODULE=django_user_handler.settings
+    env_file: ./env/.env_nginx
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.40
+    hostname: service_user_handler_django
+    volumes:
+      - static_media:/django_web_app/media
+      - static_users:/django_web_app/staticfiles
+      - secrets_user_handler_django:/django_web_app/user_handler_django
+
+  service_user_handler_postgresql:
+    platform: linux/arm64
+    build:
+      context: ./requirements/service_user_handler/postgresql
+      dockerfile: Dockerfile
+    container_name: service_user_handler_postgresql
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.41
+    hostname: service_user_handler_postgresql
+    volumes:
+      - secrets_user_handler_postgres:/etc/postgresql/user_handler_postgres
+      - secrets_game_pong_postgres:/etc/postgresql/game_pong_postgres
+
+  service_game_pong_django:
+    platform: linux/arm64
+    depends_on:
+      - service_game_pong_postgresql
+      - vault
+    build:
+      context: ./requirements/service_game_pong/django
+      dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/pong/health"]
+      interval: 30s
+      retries: 3
+    container_name: service_game_pong_django
+    environment:
+      - DJANGO_SETTINGS_MODULE=django_game_pong.settings
+    env_file: ./env/.env_nginx
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.42
+    hostname: service_game_pong_django
+    volumes:
+      - static_pong:/django_web_app/staticfiles
+      - secrets_game_pong_django:/django_web_app/game_pong_django
+
+  service_game_pong_postgresql:
+    platform: linux/arm64
+    build:
+      context: ./requirements/service_game_pong/postgresql
+      dockerfile: Dockerfile
+    container_name: service_game_pong_postgresql
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.43
+    hostname: service_game_pong_postgresql
+    volumes:
+      - secrets_game_pong_postgres:/etc/postgresql/game_pong_postgres
+      - secrets_user_handler_postgres:/etc/postgresql/user_handler_postgres
+
+  service_live_chat_django:
+    platform: linux/arm64
+    depends_on:
+      - service_live_chat_postgresql
+      - vault
+    build:
+      context: ./requirements/service_live_chat/django
+      dockerfile: Dockerfile
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/live_chat/health"]
+      interval: 30s
+      retries: 3
+    container_name: service_live_chat_django
+    environment:
+      - DJANGO_SETTINGS_MODULE=django_live_chat.settings
+    env_file: ./env/.env_nginx
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.44
+    hostname: service_live_chat_django
+    volumes:
+      - static_live_chat:/django_web_app/staticfiles
+      - secrets_live_chat_django:/django_web_app/live_chat_django
+
+  service_live_chat_postgresql:
+    platform: linux/arm64
+    build:
+      context: ./requirements/service_live_chat/postgresql
+      dockerfile: Dockerfile
+    container_name: service_live_chat_postgresql
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.45
+    hostname: service_live_chat_postgresql
+    volumes:
+      - secrets_user_handler_postgres:/etc/postgresql/user_handler_postgres
+      - secrets_live_chat_postgres:/etc/postgresql/live_chat_postgres
+      - secrets_game_pong_postgres:/etc/postgresql/game_pong_postgres
+
+  vault:
+    platform: linux/arm64
+    build:
+      context: ./requirements/hashicorp_vault/vault
+      dockerfile: Dockerfile
+    container_name: vault_secrets
+    init: true
+    restart: always
+    networks:
+      network:
+        ipv4_address: 172.20.0.9
+    environment:
+      - VAULT_ADDR=http://172.20.0.9:8200
+      - VAULT_SKIP_VERIFY=true
+    hostname: vault
+    cap_add:
+      - IPC_LOCK
+    volumes:
+      - secrets_user_handler_django:/vault/clients_tokens/user_handler_django
+      - secrets_user_handler_postgres:/vault/clients_tokens/user_handler_postgres
+      - secrets_game_pong_django:/vault/clients_tokens/game_pong_django
+      - secrets_game_pong_postgres:/vault/clients_tokens/game_pong_postgres
+      - secrets_live_chat_django:/vault/clients_tokens/live_chat_django
+      - secrets_live_chat_postgres:/vault/clients_tokens/live_chat_postgres
+
+networks:
+  network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+volumes:
+  static_users:
+  static_media:
+  static_pong:
+  static_live_chat:
+  secrets_user_handler_django:
+  secrets_user_handler_postgres:
+  secrets_game_pong_django:
+  secrets_game_pong_postgres:
+  secrets_live_chat_django:
+  secrets_live_chat_postgres:
