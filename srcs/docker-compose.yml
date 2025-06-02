@@ -1,6 +1,5 @@
 services:
   nginx:
-    platform: linux/arm64
     depends_on:
       - frontend
     build:
@@ -24,7 +23,6 @@ services:
       - static_users:/static/users
 
   frontend:
-    platform: linux/arm64
     depends_on:
       - service_user_handler_django
       - service_game_pong_django
@@ -48,7 +46,6 @@ services:
     hostname: frontend
 
   service_user_handler_django:
-    platform: linux/arm64
     depends_on:
       - service_user_handler_postgresql
       - vault
@@ -75,7 +72,6 @@ services:
       - secrets_user_handler_django:/django_web_app/user_handler_django
 
   service_user_handler_postgresql:
-    platform: linux/arm64
     build:
       context: ./requirements/service_user_handler/postgresql
       dockerfile: Dockerfile
@@ -91,7 +87,6 @@ services:
       - secrets_game_pong_postgres:/etc/postgresql/game_pong_postgres
 
   service_game_pong_django:
-    platform: linux/arm64
     depends_on:
       - service_game_pong_postgresql
       - vault
@@ -117,7 +112,6 @@ services:
       - secrets_game_pong_django:/django_web_app/game_pong_django
 
   service_game_pong_postgresql:
-    platform: linux/arm64
     build:
       context: ./requirements/service_game_pong/postgresql
       dockerfile: Dockerfile
@@ -133,7 +127,6 @@ services:
       - secrets_user_handler_postgres:/etc/postgresql/user_handler_postgres
 
   service_live_chat_django:
-    platform: linux/arm64
     depends_on:
       - service_live_chat_postgresql
       - vault
@@ -159,7 +152,6 @@ services:
       - secrets_live_chat_django:/django_web_app/live_chat_django
 
   service_live_chat_postgresql:
-    platform: linux/arm64
     build:
       context: ./requirements/service_live_chat/postgresql
       dockerfile: Dockerfile
@@ -176,7 +168,6 @@ services:
       - secrets_game_pong_postgres:/etc/postgresql/game_pong_postgres
 
   vault:
-    platform: linux/arm64
     build:
       context: ./requirements/hashicorp_vault/vault
       dockerfile: Dockerfile
